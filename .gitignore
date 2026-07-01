@@ -1,0 +1,54 @@
+# ===== Node / Next.js (web/) =====
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+.vercel/
+
+# ===== Environment / secrets =====
+.env
+.env.*
+!.env.example
+*.local
+
+# ===== Python (training/) =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ===== ML artifacts (large files — keep out of git) =====
+# Raw datasets and extracted landmarks
+training/data/raw/
+training/data/landmarks/
+*.npy
+*.npz
+# Trained weights (use Git LFS or releases if you must version them)
+*.h5
+*.keras
+*.pt
+*.pth
+*.ckpt
+# TF.js exported models are small enough to commit; do NOT ignore web/public/models/
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ===== Logs / misc =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
