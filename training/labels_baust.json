@@ -1,0 +1,11 @@
+{
+  "_note": "Maps BAUST Lipi folder index (0-35) -> Bangla letter. BAUST is 30 consonants + 6 vowels; the paper only shows the order in a figure, so this order is PROVISIONAL. The trained model is correct regardless of these strings — only the DISPLAYED letters depend on this file. Verify/fix with: python -m src.make_sample_sheet --dataset baust_lipi --subdir \"500 data\"  (someone who reads BdSL matches each index to its sign).",
+  "_verified": false,
+  "0": "অ", "1": "আ", "2": "ই", "3": "উ", "4": "এ", "5": "ও",
+  "6": "ক", "7": "খ", "8": "গ", "9": "ঘ", "10": "ঙ",
+  "11": "চ", "12": "ছ", "13": "জ", "14": "ঝ", "15": "ঞ",
+  "16": "ট", "17": "ঠ", "18": "ড", "19": "ঢ", "20": "ণ",
+  "21": "ত", "22": "থ", "23": "দ", "24": "ধ", "25": "ন",
+  "26": "প", "27": "ফ", "28": "ব", "29": "ভ", "30": "ম",
+  "31": "য", "32": "র", "33": "ল", "34": "শ", "35": "স"
+}

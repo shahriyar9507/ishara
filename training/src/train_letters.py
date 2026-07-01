@@ -28,11 +28,12 @@ def build_model(input_dim: int, num_classes: int):
     import tensorflow as tf
     from tensorflow.keras import layers, models
 
+    # Plain Dense stack (no BatchNorm) so the exported weights run as a trivial
+    # forward pass in TF.js: y = softmax(relu(relu(x·W0+b0)·W1+b1)·W2+b2).
     model = models.Sequential(
         [
             layers.Input(shape=(input_dim,)),
             layers.Dense(256, activation="relu"),
-            layers.BatchNormalization(),
             layers.Dropout(0.3),
             layers.Dense(128, activation="relu"),
             layers.Dropout(0.3),

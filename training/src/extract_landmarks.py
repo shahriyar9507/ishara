@@ -33,7 +33,6 @@ except ImportError:  # pragma: no cover
     sys.exit("mediapipe not installed. Run: pip install -r requirements.txt")
 
 from . import config
-from .labels import build_label_index
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -66,18 +65,33 @@ def extract_from_image(img_bgr, hands) -> np.ndarray | None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Extract MediaPipe landmarks from an image dataset.")
     ap.add_argument("--dataset", required=True, help="folder name under data/raw/")
+    ap.add_argument("--subdir", default="", help="nested folder holding the class dirs")
+    ap.add_argument("--labels-json", default="", help="JSON mapping folder-name -> Bangla label")
     ap.add_argument("--max-per-class", type=int, default=0, help="cap images per class (0 = all)")
     args = ap.parse_args()
 
-    src_dir = config.RAW_DIR / args.dataset
+    src_dir = config.RAW_DIR / args.dataset / args.subdir if args.subdir else config.RAW_DIR / args.dataset
     if not src_dir.is_dir():
         sys.exit(f"Dataset not found: {src_dir}\nPut it at data/raw/{args.dataset}/<label>/*.jpg")
 
-    class_dirs = sorted([d for d in src_dir.iterdir() if d.is_dir()])
+    # Sort class dirs numerically when folder names are digits, else lexically.
+    class_dirs = [d for d in src_dir.iterdir() if d.is_dir()]
+    class_dirs.sort(key=lambda d: (0, int(d.name)) if d.name.isdigit() else (1, d.name))
     if not class_dirs:
         sys.exit(f"No class subfolders in {src_dir}")
-    class_names = [d.name for d in class_dirs]
-    name_to_id, _ = build_label_index(class_names)
+
+    folder_names = [d.name for d in class_dirs]
+    name_to_id = {name: i for i, name in enumerate(folder_names)}  # id follows sorted order
+
+    # Optional display labels (index/folder -> Bangla). Falls back to folder names.
+    label_map: dict[str, str] = {}
+    if args.labels_json:
+        import json
+        lp = config.TRAINING_DIR / args.labels_json
+        if lp.exists():
+            label_map = {k: v for k, v in json.loads(lp.read_text(encoding="utf-8")).items()
+                         if not k.startswith("_")}
+    display_names = [label_map.get(n, n) for n in folder_names]
 
     hands = mp.solutions.hands.Hands(
         static_image_mode=True,
@@ -108,7 +122,7 @@ def main() -> None:
 
     X = np.stack(X).astype(np.float32)
     y = np.array(y, dtype=np.int64)
-    classes = np.array(sorted(class_names), dtype=object)
+    classes = np.array(display_names, dtype=object)  # id order; Bangla if labels-json given
 
     out = config.LANDMARKS_DIR / f"{args.dataset}.npz"
     np.savez_compressed(out, X=X, y=y, classes=classes)
