@@ -90,6 +90,8 @@ def pull():
 def poll():
     """Loop until output files appear (or an error shows in the log)."""
     import time
+    # Give a freshly-pushed version time to supersede the previous run's output.
+    time.sleep(150)
     for i in range(120):  # up to ~60 min at 30s
         st, raw = call(f"/kernels/status{Q}", auth=BASIC)
         s = json.loads(raw).get("status", "?") if st == 200 else f"http{st}"
