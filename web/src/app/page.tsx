@@ -10,8 +10,9 @@ import { CaptionPanel } from "@/components/CaptionPanel";
 import { MicFAB } from "@/components/MicFAB";
 import { CircleButton } from "@/components/CircleButton";
 import { GridIcon } from "@/components/Icons";
+import { TrackingOverlay } from "@/components/TrackingOverlay";
 import { createRecognizer } from "@/lib/recognizer";
-import type { OrbState, Prediction, Recognizer } from "@/lib/recognizer/types";
+import type { HandFrame, OrbState, Prediction, Recognizer } from "@/lib/recognizer/types";
 import { speak, stopSpeaking } from "@/lib/tts";
 import { buildSentence } from "@/lib/language";
 import { useSettings } from "@/lib/useSettings";
@@ -36,8 +37,10 @@ export default function RecognizePage() {
   const [orbState, setOrbState] = useState<OrbState>("idle");
   const [speaking, setSpeaking] = useState(false);
   const [sentence, setSentence] = useState<string | null>(null);
+  const [initializing, setInitializing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HandFrame | null>(null);
   const recognizerRef = useRef<Recognizer | null>(null);
   const lastRef = useRef<{ label: string; t: number }>({ label: "", t: 0 });
   const sentenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,22 +65,27 @@ export default function RecognizePage() {
   );
 
   const start = useCallback(async () => {
-    const rec = await createRecognizer(mode);
-    recognizerRef.current = rec;
-    rec.onResult(handleResult);
+    setInitializing(true);
     try {
+      const rec = await createRecognizer(mode);
+      recognizerRef.current = rec;
+      rec.onResult(handleResult);
+      rec.onLandmarks?.((f) => (frameRef.current = f));
       await rec.start(videoRef.current);
       setRunning(true);
       setOrbState("capturing");
     } catch {
       // camera denied / engine failed to start
       recognizerRef.current = null;
+    } finally {
+      setInitializing(false);
     }
   }, [mode, handleResult]);
 
   const stop = useCallback(() => {
     recognizerRef.current?.stop();
     recognizerRef.current = null;
+    frameRef.current = null;
     setRunning(false);
     setOrbState("idle");
   }, []);
@@ -159,14 +167,41 @@ export default function RecognizePage() {
           ref={videoRef}
           playsInline
           muted
-          className="pointer-events-none absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-500"
-          style={{ opacity: running ? 0.35 : 0 }}
+          className="pointer-events-none absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-700"
+          style={{ opacity: running ? 0.92 : 0 }}
         />
-        <div className="relative z-10 flex flex-col items-center gap-5">
-          <RecognitionOrb state={orbState} size={running ? 150 : 190} />
-          <p className="bangla text-center text-lg font-medium text-primary">{statusText}</p>
-          <ActivityWave active={running} />
-        </div>
+        {running && <TrackingOverlay frameRef={frameRef} />}
+        {running && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(120% 90% at 50% 38%, transparent 55%, rgba(0,0,0,0.38))" }}
+          />
+        )}
+
+        {/* Idle hero */}
+        {!running && !initializing && (
+          <div className="relative z-10 flex flex-col items-center gap-5">
+            <RecognitionOrb state="idle" size={190} />
+            <p className="bangla text-center text-lg font-medium text-primary">{statusText}</p>
+            <ActivityWave active={false} />
+          </div>
+        )}
+
+        {/* Initializing */}
+        {initializing && (
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
+            <p className="bangla text-sm text-secondary">ক্যামেরা ও মডেল চালু হচ্ছে…</p>
+          </div>
+        )}
+
+        {/* Running status pill */}
+        {running && (
+          <div className="glass absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full px-3 py-1.5">
+            <RecognitionOrb state={orbState} size={20} />
+            <span className="bangla text-sm font-medium text-primary">{statusText}</span>
+          </div>
+        )}
       </section>
 
       <CaptionPanel

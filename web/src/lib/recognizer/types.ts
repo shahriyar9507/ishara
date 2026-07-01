@@ -13,6 +13,17 @@ export interface Prediction {
   confidence: number;
 }
 
+export interface LandmarkPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Raw per-frame hand landmarks (image-normalized 0..1) for drawing the tracking overlay. */
+export interface HandFrame {
+  hands: LandmarkPoint[][];
+}
+
 export interface Recognizer {
   /** Begin capture/inference. Attach camera stream to the given video element if needed. */
   start(video?: HTMLVideoElement | null): Promise<void>;
@@ -20,6 +31,8 @@ export interface Recognizer {
   stop(): void;
   /** Subscribe to confirmed predictions. Returns an unsubscribe fn. */
   onResult(cb: (p: Prediction) => void): () => void;
+  /** Optional: subscribe to raw per-frame landmarks for the tracking overlay. */
+  onLandmarks?(cb: (frame: HandFrame) => void): () => void;
   /** Which recognition mode this engine is producing. */
   mode: RecoMode;
 }

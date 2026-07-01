@@ -2,15 +2,16 @@
 // Implements the Recognizer interface (same as letters/mock), so the UI is unchanged.
 
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import type { Prediction, RecoMode, Recognizer } from "./types";
+import type { HandFrame, LandmarkPoint, Prediction, RecoMode, Recognizer } from "./types";
 import type { WordModel } from "./wordModel";
 import { createHandLandmarker, featuresFromResult } from "./handLandmarks";
 import { toBn } from "./wordLabelsBn";
 
 const CONF_THRESHOLD = 0.6;
-const PREDICT_EVERY = 4;     // run the LSTM every N frames (throttle)
+const PREDICT_EVERY = 4;     // run the LSTM every N detections (throttle)
 const STABLE_NEEDED = 3;     // consecutive same top word to emit
 const REEMIT_MS = 1800;      // don't repeat the same word within this window
+const DETECT_INTERVAL = 55;  // throttle detection to ~18fps so the UI never hangs
 
 export class RealWordRecognizer implements Recognizer {
   mode: RecoMode;
@@ -24,7 +25,9 @@ export class RealWordRecognizer implements Recognizer {
   private frame = 0;
   private streak = { index: -1, n: 0 };
   private last = { index: -1, t: 0 };
+  private lastDetect = 0;
   private listeners = new Set<(p: Prediction) => void>();
+  private lmListeners = new Set<(f: HandFrame) => void>();
 
   constructor(model: WordModel, mode: RecoMode = "words") {
     this.model = model;
@@ -48,8 +51,12 @@ export class RealWordRecognizer implements Recognizer {
 
   private loop = () => {
     if (!this.running || !this.landmarker || !this.video) return;
-    if (this.video.readyState >= 2) {
-      const res = this.landmarker.detectForVideo(this.video, performance.now());
+    const now = performance.now();
+    if (this.video.readyState >= 2 && now - this.lastDetect >= DETECT_INTERVAL) {
+      this.lastDetect = now;
+      const res = this.landmarker.detectForVideo(this.video, now);
+      const hands = (res.landmarks || []) as LandmarkPoint[][];
+      if (this.lmListeners.size) this.lmListeners.forEach((cb) => cb({ hands }));
       const feats = featuresFromResult(res.landmarks as never, 2) ?? new Array(this.model.featureDim).fill(0);
       this.buffer.push(feats);
       if (this.buffer.length > this.model.seqLen) this.buffer.shift();
@@ -92,5 +99,10 @@ export class RealWordRecognizer implements Recognizer {
   onResult(cb: (p: Prediction) => void): () => void {
     this.listeners.add(cb);
     return () => this.listeners.delete(cb);
+  }
+
+  onLandmarks(cb: (f: HandFrame) => void): () => void {
+    this.lmListeners.add(cb);
+    return () => this.lmListeners.delete(cb);
   }
 }

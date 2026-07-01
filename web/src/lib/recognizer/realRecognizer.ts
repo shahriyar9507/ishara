@@ -2,7 +2,7 @@
 // Implements the same Recognizer interface as MockRecognizer, so the UI is unchanged.
 
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import type { Prediction, RecoMode, Recognizer } from "./types";
+import type { HandFrame, LandmarkPoint, Prediction, RecoMode, Recognizer } from "./types";
 import { DenseModel } from "./denseModel";
 import { createHandLandmarker, featuresFromResult } from "./handLandmarks";
 
@@ -10,6 +10,7 @@ const CONF_THRESHOLD = 0.7; // min probability to consider a prediction
 const WINDOW = 8; // frames of history for majority vote
 const NEEDED = 5; // how many of WINDOW must agree to emit
 const REEMIT_MS = 900; // don't emit the same label again within this window
+const DETECT_INTERVAL = 55; // throttle detection to ~18fps so the UI never hangs
 
 export class RealRecognizer implements Recognizer {
   mode: RecoMode;
@@ -21,7 +22,9 @@ export class RealRecognizer implements Recognizer {
   private running = false;
   private history: number[] = [];
   private last = { index: -1, t: 0 };
+  private lastDetect = 0;
   private listeners = new Set<(p: Prediction) => void>();
+  private lmListeners = new Set<(f: HandFrame) => void>();
 
   constructor(model: DenseModel, mode: RecoMode = "letters") {
     this.model = model;
@@ -44,8 +47,12 @@ export class RealRecognizer implements Recognizer {
 
   private loop = () => {
     if (!this.running || !this.landmarker || !this.video) return;
-    if (this.video.readyState >= 2) {
-      const res = this.landmarker.detectForVideo(this.video, performance.now());
+    const now = performance.now();
+    if (this.video.readyState >= 2 && now - this.lastDetect >= DETECT_INTERVAL) {
+      this.lastDetect = now;
+      const res = this.landmarker.detectForVideo(this.video, now);
+      const hands = (res.landmarks || []) as LandmarkPoint[][];
+      if (this.lmListeners.size) this.lmListeners.forEach((cb) => cb({ hands }));
       const feats = featuresFromResult(res.landmarks as never, 2);
       if (feats && feats.length === this.model.featureDim) {
         const { index, confidence } = this.model.predict(feats);
@@ -82,5 +89,10 @@ export class RealRecognizer implements Recognizer {
   onResult(cb: (p: Prediction) => void): () => void {
     this.listeners.add(cb);
     return () => this.listeners.delete(cb);
+  }
+
+  onLandmarks(cb: (f: HandFrame) => void): () => void {
+    this.lmListeners.add(cb);
+    return () => this.lmListeners.delete(cb);
   }
 }

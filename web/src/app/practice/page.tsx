@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { CircleButton } from "@/components/CircleButton";
 import { SpeakerIcon, CheckIcon } from "@/components/Icons";
+import { TrackingOverlay } from "@/components/TrackingOverlay";
 import { createRecognizer } from "@/lib/recognizer";
-import type { Prediction, Recognizer } from "@/lib/recognizer/types";
+import type { HandFrame, Prediction, Recognizer } from "@/lib/recognizer/types";
 import { toBn } from "@/lib/recognizer/wordLabelsBn";
 import { speak } from "@/lib/tts";
 
@@ -23,6 +24,7 @@ export default function PracticePage() {
   const [lastSeen, setLastSeen] = useState<string>("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HandFrame | null>(null);
   const recRef = useRef<Recognizer | null>(null);
   const targetRef = useRef<{ label: string; index: number } | null>(null);
   targetRef.current = target;
@@ -54,6 +56,7 @@ export default function PracticePage() {
     const rec = await createRecognizer(mode);
     recRef.current = rec;
     rec.onResult(onResult);
+    rec.onLandmarks?.((f) => (frameRef.current = f));
     try { await rec.start(videoRef.current); } catch { /* camera denied */ }
   }, [onResult, stopRec]);
 
@@ -108,6 +111,7 @@ export default function PracticePage() {
           <div className="glass relative flex items-center justify-center overflow-hidden p-1">
             <video ref={videoRef} playsInline muted
               className="h-full w-full scale-x-[-1] rounded-xl object-cover" style={{ minHeight: 200 }} />
+            <TrackingOverlay frameRef={frameRef} />
             {status === "correct" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
                 <CheckIcon width={48} height={48} />
