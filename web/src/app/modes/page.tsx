@@ -37,6 +37,23 @@ export default function ModesPage() {
         />
       </section>
 
+      <button
+        type="button"
+        onClick={() => router.push("/practice")}
+        className="glass flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-xl text-white">
+            <span className="bangla text-lg font-bold">শি</span>
+          </span>
+          <div>
+            <p className="bangla font-medium text-primary">শেখো ও অনুশীলন</p>
+            <p className="bangla text-xs text-secondary">রেফারেন্স দেখে ইশারা শিখে টেস্ট করো</p>
+          </div>
+        </div>
+        <GridIcon width={18} height={18} />
+      </button>
+
       <section className="glass flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/20 text-primary">
