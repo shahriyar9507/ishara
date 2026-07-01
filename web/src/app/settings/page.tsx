@@ -78,6 +78,27 @@ export default function SettingsPage() {
       </section>
 
       <section>
+        <h2 className="bangla mb-3 text-sm font-medium uppercase tracking-wide text-secondary">ট্র্যাকিং</h2>
+        <button
+          type="button"
+          onClick={() => update({ fullTracking: !settings.fullTracking })}
+          className="glass flex w-full items-center justify-between rounded-2xl px-4 py-3"
+          aria-pressed={settings.fullTracking}
+        >
+          <span className="bangla text-left text-primary">
+            মুখ ও শরীর ট্র্যাকিং
+            <span className="block text-xs text-secondary">হাতের সাথে মুখ ও শরীরও ট্র্যাক করবে (ভারী — ধীর ডিভাইসে বন্ধ রাখো)</span>
+          </span>
+          <span className={`relative h-6 w-11 rounded-full transition ${settings.fullTracking ? "accent-gradient" : "bg-black/25"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${settings.fullTracking ? "left-[22px]" : "left-0.5"}`} />
+          </span>
+        </button>
+        <p className="bangla mt-2 text-xs text-secondary">
+          মুখভঙ্গি ও শরীরের ভঙ্গি ইশারা ভাষার ব্যাকরণে গুরুত্বপূর্ণ — এটা চালু করলে বোঝা সহজ হয়।
+        </p>
+      </section>
+
+      <section>
         <h2 className="bangla mb-2 text-sm font-medium uppercase tracking-wide text-secondary">
           কণ্ঠের স্পিড — {settings.rate.toFixed(1)}×
         </h2>

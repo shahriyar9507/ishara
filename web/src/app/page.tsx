@@ -11,6 +11,7 @@ import { MicFAB } from "@/components/MicFAB";
 import { CircleButton } from "@/components/CircleButton";
 import { GridIcon } from "@/components/Icons";
 import { TrackingOverlay } from "@/components/TrackingOverlay";
+import { FaceBodyOverlay } from "@/components/FaceBodyOverlay";
 import { createRecognizer } from "@/lib/recognizer";
 import type { HandFrame, OrbState, Prediction, Recognizer } from "@/lib/recognizer/types";
 import { speak, stopSpeaking } from "@/lib/tts";
@@ -170,6 +171,7 @@ export default function RecognizePage() {
           className="pointer-events-none absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-700"
           style={{ opacity: running ? 0.92 : 0 }}
         />
+        {running && <FaceBodyOverlay videoRef={videoRef} active={settings.fullTracking} />}
         {running && <TrackingOverlay frameRef={frameRef} />}
         {running && (
           <div

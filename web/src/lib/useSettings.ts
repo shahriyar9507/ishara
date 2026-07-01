@@ -8,10 +8,17 @@ export interface Settings {
   rate: number; // TTS speech rate 0.5–1.5
   voiceURI: string | null; // preferred TTS voice
   autoSpeak: boolean; // speak recognized letters/words/sentences automatically
+  fullTracking: boolean; // also track face + body (heavier; off by default)
 }
 
 const KEY = "ishara-settings";
-const DEFAULTS: Settings = { mode: "letters", rate: 1, voiceURI: null, autoSpeak: true };
+const DEFAULTS: Settings = {
+  mode: "letters",
+  rate: 1,
+  voiceURI: null,
+  autoSpeak: true,
+  fullTracking: false,
+};
 
 function read(): Settings {
   if (typeof window === "undefined") return DEFAULTS;
