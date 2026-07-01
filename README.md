@@ -63,6 +63,10 @@ Built in three layers — each stands on the previous. See **[docs/ROADMAP.md](d
 - **Phase 6** — UI + PWA
 - **Phase 7** — Polish, test & deploy
 
+## Design
+
+UI theme, mood, and components follow the provided reference mockups — a **dark "Aurora"** theme and a **light "Lavender"** theme (glassmorphism, glowing recognition orb, live activity waveform, mic FAB, rounded cards). Full spec + design tokens in **[docs/DESIGN.md](docs/DESIGN.md)**.
+
 ## Datasets (labels already in Bangla)
 
 Ishara-Lipi · BAUST Lipi (36 letters, ~18k images) · BdSL36 · BdSL Words. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
