@@ -5,25 +5,26 @@ import type { RecoMode, Recognizer } from "./types";
 import { MockRecognizer } from "./mockRecognizer";
 import { DenseModel } from "./denseModel";
 
-// letters model lives at /models/letters/model.json (words model added later)
-const MODEL_URL: Record<string, string> = {
-  letters: "/models/letters/model.json",
-  words: "/models/words/model.json",
-  sentences: "/models/words/model.json",
-};
+const LETTERS_URL = "/models/letters/model.json";
+const WORDS_URL = "/models/words/word_model.json";
 
 export async function createRecognizer(mode: RecoMode): Promise<Recognizer> {
-  const url = MODEL_URL[mode] ?? MODEL_URL.letters;
-  const model = await DenseModel.load(url);
+  // Words / sentences: dynamic LSTM word model (falls back to mock if not present).
+  if (mode === "words" || mode === "sentences") {
+    const { WordModel } = await import("./wordModel");
+    const wm = await WordModel.load(WORDS_URL);
+    if (wm) {
+      const { RealWordRecognizer } = await import("./realWordRecognizer");
+      return new RealWordRecognizer(wm, mode);
+    }
+    return new MockRecognizer(mode);
+  }
+
+  // Letters: static Dense model over MediaPipe landmarks.
+  const model = await DenseModel.load(LETTERS_URL);
   if (model) {
-    // Lazy-import the heavy MediaPipe engine only when a real model exists.
     const { RealRecognizer } = await import("./realRecognizer");
     return new RealRecognizer(model, mode);
   }
   return new MockRecognizer(mode);
-}
-
-/** True if a trained model is available for this mode (for UI hints). */
-export async function hasTrainedModel(mode: RecoMode): Promise<boolean> {
-  return (await DenseModel.load(MODEL_URL[mode] ?? MODEL_URL.letters)) !== null;
 }
