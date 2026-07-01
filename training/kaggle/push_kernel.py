@@ -15,16 +15,21 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 CREDS = json.loads((Path.home() / ".kaggle" / "kaggle.json").read_text())
 USER, KEY = CREDS["username"], CREDS["key"]
-AUTH = "Basic " + base64.b64encode(f"{USER}:{KEY}".encode()).decode()
+# Write ops (kernels/push) require the new Bearer KGAT token; the hex key is its suffix.
+AUTH = f"Bearer KGAT_{KEY}"
 SLUG = f"{USER}/ishara-letter-train"
 DATASET = "mdhadiuzzaman/baust-lipi-a-bdsl-dataset"
 API = "https://www.kaggle.com/api/v1"
 
 
-def call(path, body=None):
+BASIC = "Basic " + base64.b64encode(f"{USER}:{KEY}".encode()).decode()
+
+
+def call(path, body=None, auth=None):
+    # push (write) needs the Bearer KGAT token; status/output (read) need Basic auth.
     data = json.dumps(body).encode() if body is not None else None
     req = Request(API + path, data=data, method="POST" if body is not None else "GET",
-                  headers={"Authorization": AUTH, "Content-Type": "application/json"})
+                  headers={"Authorization": auth or AUTH, "Content-Type": "application/json"})
     try:
         with urlopen(req) as r:
             return r.status, r.read()
@@ -35,12 +40,12 @@ def call(path, body=None):
 def push():
     code = (HERE / "ishara_train_kernel.py").read_text(encoding="utf-8")
     body = {
-        "id": SLUG,
-        "title": "Ishara Letter Train",
+        "slug": SLUG,
+        "newTitle": "Ishara Letter Train",
         "text": code,
         "language": "python",
         "kernelType": "script",
-        "isPrivate": True,
+        "isPrivate": False,
         "enableGpu": True,
         "enableInternet": True,
         "datasetDataSources": [DATASET],
@@ -52,27 +57,53 @@ def push():
     print("push:", st, raw.decode()[:500])
 
 
+Q = f"?userName={USER}&kernelSlug=ishara-letter-train"
+
+
 def status():
-    st, raw = call(f"/kernels/status/{SLUG}")
-    print("status:", st, raw.decode()[:400])
+    st, raw = call(f"/kernels/status{Q}", auth=BASIC)
+    print("status:", st, raw.decode()[:300])
+    return raw
+
+
+def _output():
+    st, raw = call(f"/kernels/output{Q}", auth=BASIC)
+    return (json.loads(raw) if st == 200 else {"files": [], "log": ""})
 
 
 def pull():
     out = REPO / "web" / "public" / "models" / "letters"
     out.mkdir(parents=True, exist_ok=True)
-    st, raw = call(f"/kernels/output/{SLUG}")
-    if st != 200:
-        print("output not ready:", st, raw.decode()[:300]); return
-    data = json.loads(raw)
-    for f in data.get("files", []):
-        name, url = f["fileName"], f.get("url")
+    data = _output()
+    files = data.get("files", [])
+    if not files:
+        print("no output files yet. log tail:", (data.get("log") or "")[-300:]); return False
+    for f in files:
+        name, url = f.get("fileName"), f.get("url")
         if url:
-            with urlopen(Request(url, headers={"Authorization": AUTH})) as r:
+            with urlopen(Request(url)) as r:
                 (out / name).write_bytes(r.read())
-            print("pulled", name)
-    print("saved to", out)
+            print("pulled", name, "->", out)
+    return True
+
+
+def poll():
+    """Loop until output files appear (or an error shows in the log)."""
+    import time
+    for i in range(120):  # up to ~60 min at 30s
+        st, raw = call(f"/kernels/status{Q}", auth=BASIC)
+        s = json.loads(raw).get("status", "?") if st == 200 else f"http{st}"
+        data = _output()
+        nfiles = len(data.get("files", []))
+        print(f"[{i}] status={s} files={nfiles}")
+        if nfiles > 0:
+            pull(); print("DONE"); return
+        if s in ("error", "cancelAcknowledged"):
+            print("LOG TAIL:\n", (data.get("log") or "")[-1500:]); return
+        time.sleep(30)
+    print("timed out")
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "push"
-    {"push": push, "status": status, "pull": pull}.get(cmd, push)()
+    {"push": push, "status": status, "pull": pull, "poll": poll}.get(cmd, push)()
