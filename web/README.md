@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ishara — Web (App)
 
-## Getting Started
+Next.js 16 + TypeScript + Tailwind v4 **PWA** hosting the on-device real-time engine
+(MediaPipe JS + TF.js), the Gemini sentence layer, and TTS voice output.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd web
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy `../.env.example` → `web/.env.local` and set `GEMINI_API_KEY` (used in Phase 4).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Themes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Two themes from the design references (`docs/DESIGN.md`): **Lavender (light)** and
+**Aurora (dark)**. On first load the theme **follows the system**; the toggle cycles
+system → light → dark and persists to `localStorage`.
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── layout.tsx        # fonts (Inter + Noto Sans Bengali), theme init, metadata
+│   ├── globals.css       # design tokens + glass/orb/wave/pulse primitives
+│   └── page.tsx          # Recognize screen
+├── components/           # GlassCard, RecognitionOrb, ActivityWave, MicFAB, CaptionPanel, TopBar, ThemeToggle...
+└── lib/
+    ├── recognizer/       # Recognizer interface + MockRecognizer (real TF.js engine swaps in)
+    ├── tts.ts            # Web Speech TTS (Bangla)
+    └── useTheme.ts       # theme hook
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Recognition engine
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The UI depends only on the `Recognizer` interface (`src/lib/recognizer/types.ts`).
+Today a **MockRecognizer** emits sample Bangla predictions so the whole app is runnable.
+Once Phase 2 training produces a TF.js model (into `public/models/`), a real
+MediaPipe + TF.js recognizer implements the same interface — no UI changes.
