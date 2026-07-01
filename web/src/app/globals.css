@@ -1,26 +1,189 @@
 @import "tailwindcss";
 
+/* =====================================================================
+   Ishara design system — two themes from the reference mockups:
+   Lavender (light, default) + Aurora (dark). See docs/DESIGN.md.
+   The inline script in layout.tsx sets data-theme="light|dark" before
+   paint (from localStorage or system), so there is no theme flash.
+   ===================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* raw palettes -------------------------------------------------- */
+  /* Lavender (light) */
+  --lav-bg:            #f5f3ff;
+  --lav-bg-2:          #ede9fe;
+  --lav-elev:          rgba(255, 255, 255, 0.55);
+  --lav-border:        rgba(255, 255, 255, 0.70);
+  --lav-accent:        #7c6bf5;
+  --lav-accent-2:      #8b5cf6;
+  --lav-orb-core:      #8b5cf6;
+  --lav-orb-glow:      #c4b5fd;
+  --lav-text:          #1e1b2e;
+  --lav-text-2:        #6b6785;
+
+  /* Aurora (dark) */
+  --aur-bg:            #0a0f1e;
+  --aur-bg-2:          #0e1526;
+  --aur-elev:          rgba(255, 255, 255, 0.06);
+  --aur-border:        rgba(255, 255, 255, 0.12);
+  --aur-accent:        #2e7dff;
+  --aur-accent-2:      #1e4fff;
+  --aur-orb-core:      #3b82f6;
+  --aur-orb-glow:      #60a5fa;
+  --aur-text:          #f5f8ff;
+  --aur-text-2:        #93a0b8;
+
+  /* active tokens (default = Lavender / light) -------------------- */
+  --bg-base:      var(--lav-bg);
+  --bg-2:         var(--lav-bg-2);
+  --glass-bg:     var(--lav-elev);
+  --glass-border: var(--lav-border);
+  --accent:       var(--lav-accent);
+  --accent-2:     var(--lav-accent-2);
+  --orb-core:     var(--lav-orb-core);
+  --orb-glow:     var(--lav-orb-glow);
+  --text:         var(--lav-text);
+  --text-2:       var(--lav-text-2);
+
+  --glass-blur: 18px;
+  --radius-card: 24px;
+  --radius-pill: 999px;
+
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Explicit dark selection */
+:root[data-theme="dark"] {
+  --bg-base:      var(--aur-bg);
+  --bg-2:         var(--aur-bg-2);
+  --glass-bg:     var(--aur-elev);
+  --glass-border: var(--aur-border);
+  --accent:       var(--aur-accent);
+  --accent-2:     var(--aur-accent-2);
+  --orb-core:     var(--aur-orb-core);
+  --orb-glow:     var(--aur-orb-glow);
+  --text:         var(--aur-text);
+  --text-2:       var(--aur-text-2);
+  --glass-blur:   20px;
+  color-scheme: dark;
 }
 
+/* No-JS fallback: honour system dark when no explicit light choice */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg-base:      var(--aur-bg);
+    --bg-2:         var(--aur-bg-2);
+    --glass-bg:     var(--aur-elev);
+    --glass-border: var(--aur-border);
+    --accent:       var(--aur-accent);
+    --accent-2:     var(--aur-accent-2);
+    --orb-core:     var(--aur-orb-core);
+    --orb-glow:     var(--aur-orb-glow);
+    --text:         var(--aur-text);
+    --text-2:       var(--aur-text-2);
+    color-scheme: dark;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Expose tokens to Tailwind utilities (bg-base, text-primary, ...) */
+@theme inline {
+  --color-base: var(--bg-base);
+  --color-elev: var(--bg-2);
+  --color-glass: var(--glass-bg);
+  --color-glassborder: var(--glass-border);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent-2);
+  --color-primary: var(--text);
+  --color-secondary: var(--text-2);
+  --font-sans: var(--font-inter);
+  --font-bangla: var(--font-noto-bengali);
 }
+
+/* ---- base ------------------------------------------------------- */
+html, body { height: 100%; }
+
+body {
+  background:
+    radial-gradient(1100px 700px at 15% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, color-mix(in srgb, var(--orb-glow) 14%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--bg-base) 0%, var(--bg-2) 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:lang(bn), .bangla { font-family: var(--font-noto-bengali), var(--font-inter), sans-serif; }
+
+/* =====================================================================
+   Reusable primitives
+   ===================================================================== */
+
+/* Glassmorphism surface */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.accent-gradient {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+}
+
+/* Recognition orb — glowing energy sphere */
+.orb {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.8) 0%, transparent 22%),
+    radial-gradient(circle at 50% 50%, var(--orb-glow) 0%, var(--orb-core) 45%, transparent 72%);
+  box-shadow:
+    0 0 60px 8px color-mix(in srgb, var(--orb-glow) 55%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--orb-core) 60%, transparent);
+  animation: orb-breathe 4s ease-in-out infinite;
+}
+.orb[data-state="capturing"]   { animation-duration: 2s; }
+.orb[data-state="recognizing"] { animation-duration: 1s; }
+.orb[data-state="speaking"]    { animation: orb-ripple 1.2s ease-out infinite; }
+
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.05); filter: brightness(1.15); }
+}
+@keyframes orb-ripple {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--orb-glow) 55%, transparent); }
+  100% { box-shadow: 0 0 0 40px transparent; }
+}
+
+/* Activity waveform bars */
+.wave { display: flex; align-items: center; gap: 3px; height: 40px; }
+.wave-bar {
+  width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  animation: wave-pulse 1s ease-in-out infinite;
+}
+@keyframes wave-pulse {
+  0%, 100% { height: 20%; opacity: 0.6; }
+  50%      { height: 100%; opacity: 1; }
+}
+
+/* Pulse rings behind the mic FAB */
+.pulse-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: pulse-out 2s ease-out infinite;
+}
+@keyframes pulse-out {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .orb, .wave-bar, .pulse-ring { animation: none !important; }
+}
+
+/* Thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent; }
