@@ -31,12 +31,12 @@ export class MockRecognizer implements Recognizer {
       }
     }
 
-    const vocab = this.mode === "words" ? SAMPLE_WORDS : SAMPLE_LETTERS;
+    const vocab = this.mode === "letters" ? SAMPLE_LETTERS : SAMPLE_WORDS;
     this.timer = setInterval(() => {
       const label = vocab[Math.floor(Math.random() * vocab.length)];
       const confidence = 0.8 + Math.random() * 0.19; // 0.80–0.99
       this.listeners.forEach((cb) => cb({ label, confidence }));
-    }, this.mode === "words" ? 1800 : 1100);
+    }, this.mode === "letters" ? 1100 : 1800);
   }
 
   stop(): void {

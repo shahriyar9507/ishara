@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RecognitionOrb } from "@/components/RecognitionOrb";
@@ -10,16 +11,26 @@ import { MicFAB } from "@/components/MicFAB";
 import { CircleButton } from "@/components/CircleButton";
 import { GridIcon } from "@/components/Icons";
 import { MockRecognizer } from "@/lib/recognizer/mockRecognizer";
-import type { OrbState, Prediction, RecoMode } from "@/lib/recognizer/types";
+import type { OrbState, Prediction } from "@/lib/recognizer/types";
 import { speak, stopSpeaking } from "@/lib/tts";
 import { buildSentence } from "@/lib/language";
+import { useSettings } from "@/lib/useSettings";
+
+const MODE_LABELS: Record<string, string> = { letters: "অ", words: "শব্দ", sentences: "বাক্য" };
+const NEXT_MODE: Record<string, "letters" | "words" | "sentences"> = {
+  letters: "words",
+  words: "sentences",
+  sentences: "letters",
+};
 
 const REPEAT_GUARD_MS = 900; // ignore same label repeated within this window (hold-to-confirm)
 const SENTENCE_DEBOUNCE_MS = 1000; // wait for a pause before asking Gemini for a sentence
 
 export default function RecognizePage() {
+  const router = useRouter();
+  const { settings, update } = useSettings();
+  const mode = settings.mode;
   const [running, setRunning] = useState(false);
-  const [mode, setMode] = useState<RecoMode>("letters");
   const [text, setText] = useState("");
   const [lastConfidence, setLastConfidence] = useState<number>();
   const [orbState, setOrbState] = useState<OrbState>("idle");
@@ -39,7 +50,7 @@ export default function RecognizePage() {
       lastRef.current = { label: p.label, t: now };
       setLastConfidence(p.confidence);
       setOrbState("recognizing");
-      setText((prev) => (mode === "words" ? (prev ? prev + " " : "") + p.label : prev + p.label));
+      setText((prev) => (mode === "letters" ? prev + p.label : (prev ? prev + " " : "") + p.label));
       // settle the orb back to capturing shortly after a hit
       window.setTimeout(() => setOrbState((s) => (s === "recognizing" ? "capturing" : s)), 250);
     },
@@ -71,12 +82,14 @@ export default function RecognizePage() {
     setOrbState("speaking");
     setSpeaking(true);
     speak(toSay, {
+      rate: settings.rate,
+      voiceURI: settings.voiceURI,
       onend: () => {
         setSpeaking(false);
         setOrbState(running ? "capturing" : "idle");
       },
     });
-  }, [sentence, text, running]);
+  }, [sentence, text, running, settings.rate, settings.voiceURI]);
 
   const onClear = useCallback(() => {
     setText("");
@@ -85,9 +98,9 @@ export default function RecognizePage() {
     lastRef.current = { label: "", t: 0 };
   }, []);
 
-  // Phase 4: in words mode, debounce-build a natural Bangla sentence via Gemini.
+  // Phase 4: in words/sentences mode, debounce-build a natural Bangla sentence via Gemini.
   useEffect(() => {
-    if (mode !== "words" || !text.trim()) {
+    if (mode === "letters" || !text.trim()) {
       setSentence(null);
       return;
     }
@@ -109,9 +122,11 @@ export default function RecognizePage() {
   useEffect(() => () => recognizerRef.current?.stop(), []);
 
   const statusText = running
-    ? mode === "words"
-      ? "শব্দ চিনছি…"
-      : "অক্ষর চিনছি…"
+    ? mode === "letters"
+      ? "অক্ষর চিনছি…"
+      : mode === "words"
+        ? "শব্দ চিনছি…"
+        : "বাক্য বানাচ্ছি…"
     : "প্রস্তুত — শুরু করতে মাইকে চাপো";
 
   return (
@@ -153,15 +168,15 @@ export default function RecognizePage() {
       {/* Controls */}
       <div className="flex items-center justify-center gap-8">
         <CircleButton
-          label={mode === "letters" ? "Mode: letters" : "Mode: words"}
-          onClick={() => setMode((m) => (m === "letters" ? "words" : "letters"))}
+          label={`Mode: ${mode} (tap to change)`}
+          onClick={() => update({ mode: NEXT_MODE[mode] })}
         >
-          <span className="bangla text-sm font-semibold">{mode === "letters" ? "অ" : "শব্দ"}</span>
+          <span className="bangla text-sm font-semibold">{MODE_LABELS[mode]}</span>
         </CircleButton>
 
         <MicFAB active={running} onClick={toggle} />
 
-        <CircleButton label="Modes & voice" onClick={() => { /* Phase 6: open mode/voice sheet */ }}>
+        <CircleButton label="Modes & voice" onClick={() => router.push("/modes")}>
           <GridIcon width={22} height={22} />
         </CircleButton>
       </div>

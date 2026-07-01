@@ -20,8 +20,14 @@ export interface SpeakOptions {
   lang?: string;
   rate?: number;
   pitch?: number;
+  voiceURI?: string | null;
   onstart?: () => void;
   onend?: () => void;
+}
+
+function voiceByURI(uri: string): SpeechSynthesisVoice | null {
+  if (!ttsSupported()) return null;
+  return window.speechSynthesis.getVoices().find((v) => v.voiceURI === uri) || null;
 }
 
 /** Speak Bangla text. Resolves when playback ends (or immediately if unsupported). */
@@ -33,7 +39,7 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
   const synth = window.speechSynthesis;
   synth.cancel(); // interrupt any current utterance
   const u = new SpeechSynthesisUtterance(text);
-  const voice = pickBanglaVoice();
+  const voice = (opts.voiceURI && voiceByURI(opts.voiceURI)) || pickBanglaVoice();
   if (voice) u.voice = voice;
   u.lang = opts.lang ?? voice?.lang ?? "bn-BD";
   u.rate = opts.rate ?? 1;
