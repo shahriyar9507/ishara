@@ -12,8 +12,10 @@ import { GridIcon } from "@/components/Icons";
 import { MockRecognizer } from "@/lib/recognizer/mockRecognizer";
 import type { OrbState, Prediction, RecoMode } from "@/lib/recognizer/types";
 import { speak, stopSpeaking } from "@/lib/tts";
+import { buildSentence } from "@/lib/language";
 
 const REPEAT_GUARD_MS = 900; // ignore same label repeated within this window (hold-to-confirm)
+const SENTENCE_DEBOUNCE_MS = 1000; // wait for a pause before asking Gemini for a sentence
 
 export default function RecognizePage() {
   const [running, setRunning] = useState(false);
@@ -22,10 +24,13 @@ export default function RecognizePage() {
   const [lastConfidence, setLastConfidence] = useState<number>();
   const [orbState, setOrbState] = useState<OrbState>("idle");
   const [speaking, setSpeaking] = useState(false);
+  const [sentence, setSentence] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const recognizerRef = useRef<MockRecognizer | null>(null);
   const lastRef = useRef<{ label: string; t: number }>({ label: "", t: 0 });
+  const sentenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentenceAbort = useRef<AbortController | null>(null);
 
   const handleResult = useCallback(
     (p: Prediction) => {
@@ -60,23 +65,45 @@ export default function RecognizePage() {
   const toggle = useCallback(() => (running ? stop() : start()), [running, start, stop]);
 
   const onSpeak = useCallback(() => {
-    if (!text.trim()) return;
+    const toSay = (sentence || text).trim();
+    if (!toSay) return;
     stopSpeaking();
     setOrbState("speaking");
     setSpeaking(true);
-    speak(text, {
+    speak(toSay, {
       onend: () => {
         setSpeaking(false);
         setOrbState(running ? "capturing" : "idle");
       },
     });
-  }, [text, running]);
+  }, [sentence, text, running]);
 
   const onClear = useCallback(() => {
     setText("");
+    setSentence(null);
     setLastConfidence(undefined);
     lastRef.current = { label: "", t: 0 };
   }, []);
+
+  // Phase 4: in words mode, debounce-build a natural Bangla sentence via Gemini.
+  useEffect(() => {
+    if (mode !== "words" || !text.trim()) {
+      setSentence(null);
+      return;
+    }
+    if (sentenceTimer.current) clearTimeout(sentenceTimer.current);
+    sentenceTimer.current = setTimeout(() => {
+      sentenceAbort.current?.abort();
+      const ctrl = new AbortController();
+      sentenceAbort.current = ctrl;
+      buildSentence(text.trim().split(/\s+/), ctrl.signal).then((s) => {
+        if (!ctrl.signal.aborted) setSentence(s);
+      });
+    }, SENTENCE_DEBOUNCE_MS);
+    return () => {
+      if (sentenceTimer.current) clearTimeout(sentenceTimer.current);
+    };
+  }, [text, mode]);
 
   // Cleanup on unmount
   useEffect(() => () => recognizerRef.current?.stop(), []);
@@ -116,6 +143,7 @@ export default function RecognizePage() {
 
       <CaptionPanel
         text={text}
+        sentence={sentence}
         lastConfidence={lastConfidence}
         speaking={speaking}
         onSpeak={onSpeak}
