@@ -1,0 +1,16 @@
+# Normalize line endings to LF in the repo (and working tree) across platforms.
+* text=auto eol=lf
+
+# Treat these as binary (never touch line endings / diff).
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.npz   binary
+*.npy   binary
+*.h5    binary
+*.keras binary
