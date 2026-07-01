@@ -1,19 +1,23 @@
-// Text-to-speech — Web Speech API (free, on-device, instant). Bangla ("bn-BD"/"bn-IN")
-// voices exist on many Android/desktop systems. Cloud/Gemini TTS fallback is added in Phase 5.
+// Text-to-speech. Prefers an on-device Bangla Web Speech voice (instant, offline). If the
+// device has no Bangla voice (common on Windows), falls back to cloud Bangla TTS via the
+// /api/tts proxy — so the app ALWAYS speaks proper Bangla.
 
 export function ttsSupported(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-/** Pick the best available Bangla voice, else any voice. */
+function isBangla(v: SpeechSynthesisVoice): boolean {
+  return /^bn(-|_)?/i.test(v.lang) || /bangla|bengali/i.test(v.name);
+}
+
+/** Best available Bangla voice, else null. */
 export function pickBanglaVoice(): SpeechSynthesisVoice | null {
   if (!ttsSupported()) return null;
-  const voices = window.speechSynthesis.getVoices();
-  return (
-    voices.find((v) => /^bn(-|_)?/i.test(v.lang)) ||
-    voices.find((v) => /bangla|bengali/i.test(v.name)) ||
-    null
-  );
+  return window.speechSynthesis.getVoices().find(isBangla) || null;
+}
+
+export function hasBanglaVoice(): boolean {
+  return pickBanglaVoice() !== null;
 }
 
 export interface SpeakOptions {
@@ -30,25 +34,56 @@ function voiceByURI(uri: string): SpeechSynthesisVoice | null {
   return window.speechSynthesis.getVoices().find((v) => v.voiceURI === uri) || null;
 }
 
-/** Speak Bangla text. Resolves when playback ends (or immediately if unsupported). */
+let cloudAudio: HTMLAudioElement | null = null;
+
+function speakCloud(text: string, opts: SpeakOptions): void {
+  try {
+    cloudAudio?.pause();
+    const url = `/api/tts?text=${encodeURIComponent(text.slice(0, 200))}&lang=bn`;
+    const audio = new Audio(url);
+    audio.playbackRate = Math.min(1.5, Math.max(0.6, opts.rate ?? 1));
+    cloudAudio = audio;
+    opts.onstart && (audio.onplay = opts.onstart);
+    audio.onended = () => opts.onend?.();
+    audio.onerror = () => opts.onend?.();
+    audio.play().catch(() => opts.onend?.());
+  } catch {
+    opts.onend?.();
+  }
+}
+
+/** Speak Bangla text (device voice if available, else cloud). */
 export function speak(text: string, opts: SpeakOptions = {}): void {
-  if (!ttsSupported() || !text.trim()) {
+  const clean = text.trim();
+  if (!clean) {
     opts.onend?.();
     return;
   }
-  const synth = window.speechSynthesis;
-  synth.cancel(); // interrupt any current utterance
-  const u = new SpeechSynthesisUtterance(text);
-  const voice = (opts.voiceURI && voiceByURI(opts.voiceURI)) || pickBanglaVoice();
-  if (voice) u.voice = voice;
-  u.lang = opts.lang ?? voice?.lang ?? "bn-BD";
-  u.rate = opts.rate ?? 1;
-  u.pitch = opts.pitch ?? 1;
-  if (opts.onstart) u.onstart = opts.onstart;
-  if (opts.onend) u.onend = opts.onend;
-  synth.speak(u);
+
+  const chosen = opts.voiceURI ? voiceByURI(opts.voiceURI) : null;
+  const voice = chosen || pickBanglaVoice();
+
+  // Use Web Speech only when we actually have a Bangla-capable voice; otherwise an
+  // English voice would silently skip Bangla text. Fall back to cloud in that case.
+  if (ttsSupported() && voice && (chosen || isBangla(voice))) {
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(clean);
+    u.voice = voice;
+    u.lang = opts.lang ?? voice.lang ?? "bn-BD";
+    u.rate = opts.rate ?? 1;
+    u.pitch = opts.pitch ?? 1;
+    if (opts.onstart) u.onstart = opts.onstart;
+    if (opts.onend) u.onend = opts.onend;
+    synth.speak(u);
+    return;
+  }
+
+  speakCloud(clean, opts);
 }
 
 export function stopSpeaking(): void {
   if (ttsSupported()) window.speechSynthesis.cancel();
+  cloudAudio?.pause();
+  cloudAudio = null;
 }

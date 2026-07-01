@@ -51,10 +51,14 @@ export default function RecognizePage() {
       setLastConfidence(p.confidence);
       setOrbState("recognizing");
       setText((prev) => (mode === "letters" ? prev + p.label : (prev ? prev + " " : "") + p.label));
+      // Auto-speak each recognized letter/word (sentences mode speaks the full sentence instead).
+      if (settings.autoSpeak && mode !== "sentences") {
+        speak(p.label, { rate: settings.rate, voiceURI: settings.voiceURI });
+      }
       // settle the orb back to capturing shortly after a hit
       window.setTimeout(() => setOrbState((s) => (s === "recognizing" ? "capturing" : s)), 250);
     },
-    [mode],
+    [mode, settings.autoSpeak, settings.rate, settings.voiceURI],
   );
 
   const start = useCallback(async () => {
@@ -115,13 +119,17 @@ export default function RecognizePage() {
       const ctrl = new AbortController();
       sentenceAbort.current = ctrl;
       buildSentence(text.trim().split(/\s+/), ctrl.signal).then((s) => {
-        if (!ctrl.signal.aborted) setSentence(s);
+        if (ctrl.signal.aborted) return;
+        setSentence(s);
+        if (settings.autoSpeak && mode === "sentences" && s) {
+          speak(s, { rate: settings.rate, voiceURI: settings.voiceURI });
+        }
       });
     }, SENTENCE_DEBOUNCE_MS);
     return () => {
       if (sentenceTimer.current) clearTimeout(sentenceTimer.current);
     };
-  }, [text, mode]);
+  }, [text, mode, settings.autoSpeak, settings.rate, settings.voiceURI]);
 
   // Cleanup on unmount
   useEffect(() => () => recognizerRef.current?.stop(), []);

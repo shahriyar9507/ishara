@@ -7,10 +7,11 @@ export interface Settings {
   mode: RecoMode;
   rate: number; // TTS speech rate 0.5–1.5
   voiceURI: string | null; // preferred TTS voice
+  autoSpeak: boolean; // speak recognized letters/words/sentences automatically
 }
 
 const KEY = "ishara-settings";
-const DEFAULTS: Settings = { mode: "letters", rate: 1, voiceURI: null };
+const DEFAULTS: Settings = { mode: "letters", rate: 1, voiceURI: null, autoSpeak: true };
 
 function read(): Settings {
   if (typeof window === "undefined") return DEFAULTS;

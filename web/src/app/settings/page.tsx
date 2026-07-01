@@ -53,6 +53,31 @@ export default function SettingsPage() {
       </section>
 
       <section>
+        <h2 className="bangla mb-3 text-sm font-medium uppercase tracking-wide text-secondary">কণ্ঠ</h2>
+        <button
+          type="button"
+          onClick={() => update({ autoSpeak: !settings.autoSpeak })}
+          className="glass flex w-full items-center justify-between rounded-2xl px-4 py-3"
+          aria-pressed={settings.autoSpeak}
+        >
+          <span className="bangla text-left text-primary">
+            স্বয়ংক্রিয় কণ্ঠ
+            <span className="block text-xs text-secondary">চেনা অক্ষর/শব্দ/বাক্য নিজে থেকেই বলবে</span>
+          </span>
+          <span
+            className={`relative h-6 w-11 rounded-full transition ${settings.autoSpeak ? "accent-gradient" : "bg-black/25"}`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${settings.autoSpeak ? "left-[22px]" : "left-0.5"}`}
+            />
+          </span>
+        </button>
+        <p className="bangla mt-2 text-xs text-secondary">
+          এই ডিভাইসে বাংলা ভয়েস না থাকলে অ্যাপ স্বয়ংক্রিয়ভাবে ক্লাউড বাংলা কণ্ঠ ব্যবহার করবে।
+        </p>
+      </section>
+
+      <section>
         <h2 className="bangla mb-2 text-sm font-medium uppercase tracking-wide text-secondary">
           কণ্ঠের স্পিড — {settings.rate.toFixed(1)}×
         </h2>
