@@ -1,0 +1,18 @@
+{
+  "name": "Ishara — বাংলা ইশারা ভাষা → টেক্সট ও কণ্ঠ",
+  "short_name": "Ishara",
+  "description": "Bangla Sign Language to text and voice, in real time. On-device recognition, natural Bangla sentences, and speech.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "lang": "bn",
+  "dir": "auto",
+  "categories": ["education", "accessibility", "utilities"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

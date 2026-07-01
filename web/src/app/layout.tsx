@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { PWARegister } from "@/components/PWARegister";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,7 +20,12 @@ export const metadata: Metadata = {
   description:
     "Ishara turns Bangla Sign Language into text and voice in real time — on-device recognition, natural Bangla sentences, and speech. Runs on PC, iOS and Android.",
   applicationName: "Ishara",
+  manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Ishara", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -56,7 +62,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <PWARegister />
+        {children}
+      </body>
     </html>
   );
 }
