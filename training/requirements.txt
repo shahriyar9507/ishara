@@ -1,0 +1,11 @@
+# Ishara training pipeline (Phase 1-2)
+# Python 3.10-3.11 recommended (MediaPipe wheels).
+
+mediapipe==0.10.14        # hand/holistic landmark extraction
+opencv-python==4.10.0.84  # image/video IO
+numpy==1.26.4
+scikit-learn==1.5.1       # train/test split, metrics
+tensorflow==2.16.1        # LSTM training
+tensorflowjs==4.20.0      # export Keras -> TF.js for the browser
+tqdm==4.66.4              # progress bars
+matplotlib==3.9.1         # confusion matrix / training curves
