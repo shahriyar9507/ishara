@@ -10,8 +10,8 @@ import { CaptionPanel } from "@/components/CaptionPanel";
 import { MicFAB } from "@/components/MicFAB";
 import { CircleButton } from "@/components/CircleButton";
 import { GridIcon } from "@/components/Icons";
-import { MockRecognizer } from "@/lib/recognizer/mockRecognizer";
-import type { OrbState, Prediction } from "@/lib/recognizer/types";
+import { createRecognizer } from "@/lib/recognizer";
+import type { OrbState, Prediction, Recognizer } from "@/lib/recognizer/types";
 import { speak, stopSpeaking } from "@/lib/tts";
 import { buildSentence } from "@/lib/language";
 import { useSettings } from "@/lib/useSettings";
@@ -38,7 +38,7 @@ export default function RecognizePage() {
   const [sentence, setSentence] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const recognizerRef = useRef<MockRecognizer | null>(null);
+  const recognizerRef = useRef<Recognizer | null>(null);
   const lastRef = useRef<{ label: string; t: number }>({ label: "", t: 0 });
   const sentenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentenceAbort = useRef<AbortController | null>(null);
@@ -58,12 +58,17 @@ export default function RecognizePage() {
   );
 
   const start = useCallback(async () => {
-    const rec = new MockRecognizer(mode);
+    const rec = await createRecognizer(mode);
     recognizerRef.current = rec;
     rec.onResult(handleResult);
-    await rec.start(videoRef.current);
-    setRunning(true);
-    setOrbState("capturing");
+    try {
+      await rec.start(videoRef.current);
+      setRunning(true);
+      setOrbState("capturing");
+    } catch {
+      // camera denied / engine failed to start
+      recognizerRef.current = null;
+    }
   }, [mode, handleResult]);
 
   const stop = useCallback(() => {
