@@ -9,7 +9,7 @@ import json, os, subprocess, sys, glob
 from pathlib import Path
 
 subprocess.run([sys.executable, "-m", "pip", "install", "-q",
-                "protobuf==4.25.3", "mediapipe==0.10.14"], check=False)
+                "protobuf==4.25.3", "mediapipe==0.10.14", "tensorflow-cpu==2.16.1"], check=False)
 
 import cv2, numpy as np
 import mediapipe as mp
