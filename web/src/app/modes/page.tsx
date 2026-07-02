@@ -56,6 +56,23 @@ export default function ModesPage() {
 
       <button
         type="button"
+        onClick={() => router.push("/dictation")}
+        className="glass flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-xl text-white">
+            <SpeakerIcon width={20} height={20} />
+          </span>
+          <div>
+            <p className="bangla font-medium text-primary">কথা → লেখা (AI সংশোধন)</p>
+            <p className="bangla text-xs text-secondary">বললে শুদ্ধ বাংলা লেখা হবে (Whisper-এর মতো)</p>
+          </div>
+        </div>
+        <GridIcon width={18} height={18} />
+      </button>
+
+      <button
+        type="button"
         onClick={() => router.push("/practice")}
         className="glass flex items-center justify-between p-4 text-left"
       >
