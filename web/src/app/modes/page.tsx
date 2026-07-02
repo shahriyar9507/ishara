@@ -56,6 +56,21 @@ export default function ModesPage() {
 
       <button
         type="button"
+        onClick={() => router.push("/analyze")}
+        className="glass flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-xl text-white text-lg">🎬</span>
+          <div>
+            <p className="bangla font-medium text-primary">ভিডিও বিশ্লেষণ</p>
+            <p className="bangla text-xs text-secondary">ইশারার ভিডিও আপলোড → AI সারসংক্ষেপ</p>
+          </div>
+        </div>
+        <GridIcon width={18} height={18} />
+      </button>
+
+      <button
+        type="button"
         onClick={() => router.push("/dictation")}
         className="glass flex items-center justify-between p-4 text-left"
       >
